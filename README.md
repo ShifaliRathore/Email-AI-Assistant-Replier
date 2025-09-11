@@ -9,6 +9,8 @@ Features
 Works in reply, new compose, and pop‑out windows
 Calls your backend via POST /api/email/generate
 Inserts the generated text into the compose editor
+
+
 Project structure
 
 extension/
@@ -20,6 +22,8 @@ server/
 index.js (Express example)
 package.json
 .env.example (optional)
+
+
 Local setup
 
 Backend (dev)
@@ -35,11 +39,15 @@ In extension/manifest.json set:
 Load in Chrome:
 chrome://extensions → Developer mode → Load unpacked → select extension/ folder
 Open Gmail → compose/reply → click “AI Reply”
+
+
 Deploy backend (quick)
 
 Deploy server to Render/Vercel/Fly
 Update AI_ENDPOINT and host_permissions to your live URL
 Reload extension
+
+
 Privacy
 
 The extension may send selected/visible email text to your API to generate a reply.

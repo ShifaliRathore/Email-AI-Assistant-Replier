@@ -1,0 +1,26 @@
+
+    /* AI button look-and-feel matching Gmail footer controls */
+.ai-reply-button {
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 18px;
+    border: 1px solid rgba(0,0,0,.12);
+    margin-right: 8px; /* sits directly left of Send */
+    cursor: pointer;
+    user-select: none;
+    background: #fff;
+    color: #1f1f1f;
+    font: 500 13px/1 Roboto, Arial, sans-serif;
+  }
+  
+  .ai-reply-button:hover {
+    background: #f6fafe;
+    border-color: #c2e0ff;
+  }
+  
+  .ai-reply-button[aria-busy="true"] {
+    opacity: 0.6;
+    pointer-events: none;
+  }

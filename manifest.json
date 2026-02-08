@@ -1,13 +1,13 @@
 {
-  "name": "Email writer Assistant",
+  "name": "Email Writer Assistant",
   "description": "AI-Powered email reply generator",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "manifest_version": 3,
 
   "permissions": ["storage"],
 
   "host_permissions": [
-    "http://localhost:8080/*"
+    "https://email-ai-backend-urf2.onrender.com/*"
   ],
 
   "background": {

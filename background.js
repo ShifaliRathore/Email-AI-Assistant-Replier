@@ -1,22 +1,23 @@
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === "AI_REPLY") {
-    fetch("http://localhost:8080/api/email/generate", {
+console.log("Background service worker running");
+
+
+const AI_ENDPOINT =
+  "https://email-ai-backend-urf2.onrender.com/api/email/generate";
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "FETCH_AI_REPLY") {
+    fetch(AI_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        emailContent: request.emailContent,
-        tone: request.tone
-      })
+      body: JSON.stringify(message.payload)
     })
       .then(res => res.text())
-      .then(reply => {
-        sendResponse({ success: true, reply });
-      })
-      .catch(err => {
-        sendResponse({ success: false, error: err.toString() });
-      });
+      .then(data => sendResponse({ success: true, data }))
+      .catch(err =>
+        sendResponse({ success: false, error: err.message })
+      );
 
     return true; // IMPORTANT: keeps message channel open
   }

@@ -180,12 +180,7 @@ injectButtons();
 
 */
 
-
-console.log("Email writer extension - content script Loaded");
-
-/* =======================
-   Selectors & Constants
-======================= */
+console.log("Email writer extension loaded");
 
 const SEND_BUTTON_SELECTOR = `
   div[role="button"][data-tooltip*="Send"],
@@ -200,119 +195,91 @@ const COMPOSE_BODY_SELECTOR = `
 const AI_BTN_CLASS = "ai-reply-button";
 const PLACEHOLDER = "✨ AI is writing a reply…";
 
-/* =======================
-   UI Helpers
-======================= */
-
-// Create AI Reply button
 function createAiButton() {
   const btn = document.createElement("div");
   btn.className = AI_BTN_CLASS;
+  btn.textContent = "AI Reply";
   btn.setAttribute("role", "button");
   btn.setAttribute("tabindex", "0");
-  btn.setAttribute("title", "Generate AI reply");
-  btn.textContent = "AI Reply";
   return btn;
 }
 
-// Find compose body related to Send button
-function findBodyFromSend(sendBtn) {
-  let node = sendBtn;
-  for (let i = 0; node && i < 12; i++) {
-    const body = node.querySelector?.(COMPOSE_BODY_SELECTOR);
+function findComposeBody(sendBtn) {
+  let el = sendBtn;
+  for (let i = 0; i < 10 && el; i++) {
+    const body = el.querySelector?.(COMPOSE_BODY_SELECTOR);
     if (body) return body;
-    node = node.parentElement;
+    el = el.parentElement;
   }
   return document.querySelector(COMPOSE_BODY_SELECTOR);
 }
 
-// Insert text at cursor
+function getEmailContent() {
+  const selection = window.getSelection();
+  if (selection && !selection.isCollapsed) {
+    return selection.toString().trim();
+  }
+
+  const msgs = document.querySelectorAll(".a3s.aiL, blockquote.gmail_quote");
+  if (msgs.length > 0) {
+    return msgs[msgs.length - 1].innerText.trim();
+  }
+  return "";
+}
+
 function insertText(editable, text) {
   editable.focus();
   document.execCommand("insertText", false, text);
 }
 
-// Replace placeholder text with AI response
-function replacePlaceholder(editable, placeholder, replacement) {
-  const walker = document.createTreeWalker(editable, NodeFilter.SHOW_TEXT, null);
-  const nodes = [];
-  while (walker.nextNode()) nodes.push(walker.currentNode);
-
-  for (const n of nodes) {
-    const idx = n.nodeValue.indexOf(placeholder);
-    if (idx !== -1) {
-      n.nodeValue = n.nodeValue.replace(placeholder, replacement);
-      return true;
+function replacePlaceholder(editable, replacement) {
+  const walker = document.createTreeWalker(editable, NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) {
+    if (walker.currentNode.nodeValue.includes(PLACEHOLDER)) {
+      walker.currentNode.nodeValue =
+        walker.currentNode.nodeValue.replace(PLACEHOLDER, replacement);
+      return;
     }
   }
-  return false;
 }
-
-/* =======================
-   Email Context
-======================= */
-
-// Extract email content user is replying to
-function getEmailContent() {
-  const sel = window.getSelection();
-  if (sel && !sel.isCollapsed) {
-    const text = sel.toString().trim();
-    if (text) return text;
-  }
-
-  const candidates = Array.from(
-    document.querySelectorAll(".a3s.aiL, .gmail_quote, blockquote.gmail_quote")
-  ).filter(el => el.offsetParent !== null);
-
-  const last = candidates[candidates.length - 1];
-  return last ? last.innerText.trim() : "";
-}
-
-/* =======================
-   BACKGROUND API CALL
-   (IMPORTANT PART)
-======================= */
-
 function fetchAiReply(emailContent) {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(
       {
-        type: "AI_REPLY",
-        emailContent: emailContent,
-        tone: "professional"
+        type: "FETCH_AI_REPLY",
+        payload: {
+          emailContent,
+          tone: "professional"
+        }
       },
       (response) => {
-        if (response && response.success) {
-          resolve(response.reply);
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError.message);
+          return;
+        }
+
+        if (!response || !response.success) {
+          reject(response?.error || "No response from background");
         } else {
-          reject(response?.error || "AI request failed");
+          resolve(response.data);
         }
       }
     );
   });
 }
 
-/* =======================
-   Inject AI Button
-======================= */
-
 function injectButtons() {
   document.querySelectorAll(SEND_BUTTON_SELECTOR).forEach(sendBtn => {
-    if (!sendBtn?.parentElement) return;
-
+    if (!sendBtn.parentElement) return;
     const prev = sendBtn.previousElementSibling;
-    if (prev && prev.classList?.contains(AI_BTN_CLASS)) return;
+    if (prev && prev.classList.contains(AI_BTN_CLASS)) return;
 
     const aiBtn = createAiButton();
     sendBtn.parentElement.insertBefore(aiBtn, sendBtn);
   });
 }
 
-/* =======================
-   Click Handler
-======================= */
-
-document.addEventListener("click", async (e) => {
+document.addEventListener("click", async e => {
   const aiBtn = e.target.closest("." + AI_BTN_CLASS);
   if (!aiBtn) return;
 
@@ -321,49 +288,27 @@ document.addEventListener("click", async (e) => {
 
   const sendBtn = aiBtn.nextElementSibling;
   const body = sendBtn
-    ? findBodyFromSend(sendBtn)
+    ? findComposeBody(sendBtn)
     : document.querySelector(COMPOSE_BODY_SELECTOR);
 
-  if (!body) {
-    console.warn("AI: compose body not found.");
-    return;
-  }
+  if (!body) return;
 
   const emailContent = getEmailContent();
 
-  aiBtn.setAttribute("aria-busy", "true");
-  const needsNewLine = body.innerText.trim().length > 0;
-  insertText(body, (needsNewLine ? "\n\n" : "") + PLACEHOLDER);
+  insertText(body, "\n\n" + PLACEHOLDER);
 
   try {
-    const aiReply = await fetchAiReply(emailContent);
-    if (!replacePlaceholder(body, PLACEHOLDER, aiReply)) {
-      insertText(body, "\n\n" + aiReply);
-    }
+    const reply = await fetchAiReply(emailContent);
+    replacePlaceholder(body, reply || "No reply generated.");
   } catch (err) {
+    replacePlaceholder(body, "AI request failed.");
     console.error(err);
-    replacePlaceholder(
-      body,
-      PLACEHOLDER,
-      "❌ AI request failed. Check console."
-    );
-  } finally {
-    aiBtn.removeAttribute("aria-busy");
   }
 });
 
-/* =======================
-   Observe Gmail DOM
-======================= */
-
-const observer = new MutationObserver(() => {
-  injectButtons();
-});
-
-observer.observe(document.documentElement, {
+new MutationObserver(injectButtons).observe(document.documentElement, {
   childList: true,
   subtree: true
 });
 
-// Initial load
 injectButtons();

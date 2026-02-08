@@ -32,7 +32,6 @@ Email-AI-Assistant-Replier
 └── README.md
 
 yaml
-Copy code
 
 ---
 
@@ -59,22 +58,21 @@ Copy code
 
 POST /api/email/generate
 
-css
-Copy code
-
 Request body:
 ```json
 {
   "emailContent": "Thank you for your message",
   "tone": "professional"
 }
+
+---
 🧪 Local Setup (Backend)
-bash
-Copy code
 cd backend
 mvn clean package
 java -jar target/*.jar
+
 🧩 Chrome Extension Setup
+
 Open Chrome → chrome://extensions
 
 Enable Developer mode
@@ -86,22 +84,20 @@ Select email-writer-ext folder
 Open Gmail and click AI Reply
 
 🔐 Environment Variables
-Backend requires:
 
-ini
-Copy code
+Backend requires:
 GEMINI_API_KEY=your_api_key_here
+
 (Do NOT hardcode API keys)
 
 👩‍💻 Author
+
 Shifali Rathore
 Computer Science Engineering | Java & Spring Boot Developer
 
 ⭐ If you like this project
-Give it a ⭐ on GitHub 🙂
 
-yaml
-Copy code
+Give it a ⭐ on GitHub 🙂
 
 ---
 
@@ -113,6 +109,5 @@ In terminal:
 git add README.md
 git commit -m "Add project README"
 git push
-🎉 Your repo is now interviewer-ready.
 
 
